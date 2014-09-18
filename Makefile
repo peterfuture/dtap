@@ -75,9 +75,8 @@ CFLAGS  += -I/usr/include -I/usr/local/include
 LDFLAGS += -L/usr/local/lib -L/usr/lib -L./
 
 LDFLAGS += -lpthread -lm 
-LDFLAGS += $(LDFLAGS-yes)
 
-
+LDFLAGS += lvm/libbundle.a lvm/libreverb.a
 
 #======================================================
 # dtap
@@ -85,8 +84,12 @@ LDFLAGS += $(LDFLAGS-yes)
 
 LIB_SRCS         += dtap.c
 LIB_C_INCLUDES   += -Iinclude
+LIB_C_INCLUDES   += -Ilvm/Bundle/lib
+LIB_C_INCLUDES   += -Ilvm/Reverb/lib
+LIB_C_INCLUDES   += -Ilvm/Common/lib
 CFLAGS           += $(LIB_C_INCLUDES)
-LIB_TARGET       := libdtap.so
+LIB_SHARED_TARGET:= libdtap.so
+LIB_STATIC_TARGET+= libdtap.a
 OBJS_LIB_RELEASE += $(addsuffix .o, $(basename $(LIB_SRCS)))
 DIRS             += ./
 
@@ -96,16 +99,16 @@ DIRS             += ./
 # test
 #======================================================
 
-EXE_SRCS         += main.c
+EXE_SRCS         += test/test.c test/test_bundle.c
 EXE_C_INCLUDES   += -Iinclude
 CFLAGS           += $(EXE_C_INCLUDES)
-EXE_TARGET       := test.exe
+EXE_TARGET       := dtap.exe
 OBJS_EXE_RELEASE += $(addsuffix .o, $(basename $(EXE_SRCS)))
-DIRS             += ./
+DIRS             += test
 
 #=========================================================
 
-DTAP_TARGET += $(LIB_TARGET)
+DTAP_TARGET += $(LIB_SHARED_TARGET) $(LIB_STATIC_TARGET)
 DTAP_TARGET += $(EXE_TARGET)
 
 all: $(DTAP_TARGET)
@@ -113,14 +116,20 @@ all: $(DTAP_TARGET)
 	@echo build $(DTAP_TARGET) done
 	@echo =====================================================
 
-$(LIB_TARGET): $(OBJS_LIB_RELEASE)
+$(LIB_SHARED_TARGET): $(OBJS_LIB_RELEASE)
 	@$(CC) -shared -fPIC -o $@ $^ $(LDFLAGS)
 	@echo =====================================================
 	@echo build $@ done
 	@echo =====================================================
 
+$(LIB_STATIC_TARGET): $(OBJS_LIB_RELEASE)
+	@$(AR) rcs $@ $^
+	@echo =====================================================
+	@echo build $@ done
+	@echo =====================================================
+
 $(EXE_TARGET): $(OBJS_EXE_RELEASE)
-	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) libdtap.a lvm/libbundle.a lvm/libreverb.a
 	@echo =====================================================
 	@echo build $@ done
 	@echo =====================================================

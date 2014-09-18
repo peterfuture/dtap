@@ -28,11 +28,11 @@
 
 
 #define MAX_NAME_LEN 1024
-typedef enum{
+enum{
     DTAP_EFFECT_NONE      = 0x0,
     DTAP_EFFECT_CLASSIC   = 0x1,
 
-    DTAP_EFFECT_MAX       = 0x800000,
+    DTAP_EFFECT_MAX       = 0x800000
 };
 
 typedef struct{
