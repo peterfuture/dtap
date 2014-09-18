@@ -208,7 +208,8 @@ BUNDLE_C_INCLUDES += \
 SRC_BUNDLE_FILES += $(SRC_COMMON_FILES)
 CFLAGS += $(BUNDLE_C_INCLUDES)
 
-BUNDLE_TARGET:= libbundle.so
+BUNDLE_STATIC_TARGET:= libbundle.a
+BUNDLE_SHARED_TARGET:= libbundle.so
 OBJS_BUNDLE_RELEASE += $(addsuffix .o, $(basename $(SRC_BUNDLE_FILES)))
 
 #=========================================================
@@ -269,28 +270,41 @@ REVERB_C_INCLUDES += \
 SRC_REVERB_FILES += $(SRC_COMMON_FILES)
 CFLAGS += $(REVERB_C_INCLUDES)
 
-REVERB_TARGET:= libreverb.so
+REVERB_STATIC_TARGET:= libreverb.a
+REVERB_SHARED_TARGET:= libreverb.so
 OBJS_REVERB_RELEASE += $(addsuffix .o, $(basename $(SRC_REVERB_FILES)))
 
-DTAP_TARGET += $(BUNDLE_TARGET)
-DTAP_TARGET += $(REVERB_TARGET)
+DTAP_TARGET += $(BUNDLE_SHARED_TARGET)
+DTAP_TARGET += $(BUNDLE_STATIC_TARGET)
+DTAP_TARGET += $(REVERB_SHARED_TARGET)
+DTAP_TARGET += $(REVERB_STATIC_TARGET)
 
 all: $(DTAP_TARGET)
 	@echo =====================================================
 	@echo build $(DTAP_TARGET) done
 	@echo =====================================================
 
-$(BUNDLE_TARGET): $(OBJS_BUNDLE_RELEASE)
+$(BUNDLE_SHARED_TARGET): $(OBJS_BUNDLE_RELEASE)
 	@$(CC) -shared -fPIC -o $@ $^ $(LDFLAGS)
 	@echo =====================================================
 	@echo build $@ done
 	@echo =====================================================
 
-$(REVERB_TARGET):$(OBJS_REVERB_RELEASE)
+$(BUNDLE_STATIC_TARGET): $(OBJS_BUNDLE_RELEASE)
+	@$(AR) rcs $@ $^
+	@echo =====================================================
+	@echo build $@ done
+	@echo =====================================================
+
+$(REVERB_SHARED_TARGET):$(OBJS_REVERB_RELEASE)
 	@$(CC) -shared -fPIC -o $@ $^ $(LDFLAGS)
 	@echo build $@ done
 	@echo =====================================================
 
+$(REVERB_STATIC_TARGET):$(OBJS_REVERB_RELEASE)
+	@$(CC) -shared -fPIC -o $@ $^ $(LDFLAGS)
+	@echo build $@ done
+	@echo =====================================================
 
 ADDSUFFIXES  = $(foreach suf,$(1),$(addsuffix $(suf),$(2)))
 ALL_DIRS     = $(call ADDSUFFIXES,$(1),$(DIRS))
