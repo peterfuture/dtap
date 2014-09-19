@@ -17,11 +17,10 @@
 #ifndef ANDROID_EFFECTBUNDLE_H_
 #define ANDROID_EFFECTBUNDLE_H_
 
-#include <audio_effects/effect_bassboost.h>
-#include <audio_effects/effect_equalizer.h>
-#include <audio_effects/effect_virtualizer.h>
 #include <LVM.h>
 #include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #if __cplusplus
 extern "C" {
@@ -39,12 +38,6 @@ extern "C" {
 #define BUNDLE_MEM_USAGE           25     // Expressed in kB
 //#define LVM_PCM
 
-#ifndef OPENSL_ES_H_
-static const effect_uuid_t SL_IID_VOLUME_ = { 0x09e8ede0, 0xddde, 0x11db, 0xb4f6,
-                                            { 0x00, 0x02, 0xa5, 0xd5, 0xc5, 0x1b } };
-const effect_uuid_t * const SL_IID_VOLUME = &SL_IID_VOLUME_;
-#endif //OPENSL_ES_H_
-
 typedef enum
 {
     LVM_BASS_BOOST,
@@ -54,16 +47,16 @@ typedef enum
 } lvm_effect_en;
 
 // Preset configuration.
-struct PresetConfig {
+typedef struct PresetConfig {
     // Human-readable name.
     const char * name;
     // An array of size nBands where each element is a configuration for the
     // corresponding band.
     //const BandConfig * bandConfigs;
-};
+}PresetConfig;
 
 /* BundledEffectContext : One per session */
-struct BundledEffectContext{
+typedef struct BundledEffectContext{
     LVM_Handle_t                    hInstance;                /* Instance handle */
     int                             SessionNo;                /* Current session number */
     int                             SessionId;                /* Current session id */
@@ -101,25 +94,24 @@ struct BundledEffectContext{
     FILE                            *PcmInPtr;
     FILE                            *PcmOutPtr;
     #endif
-};
+}BundledEffectContext;
 
 /* SessionContext : One session */
-struct SessionContext{
+typedef struct SessionContext{
     bool                            bBundledEffectsEnabled;
     bool                            bVolumeInstantiated;
     bool                            bEqualizerInstantiated;
     bool                            bBassInstantiated;
     bool                            bVirtualizerInstantiated;
     BundledEffectContext            *pBundledContext;
-};
+}SessionContext;
 
-struct EffectContext{
-    const struct effect_interface_s *itfe;
-    effect_config_t                 config;
+typedef struct EffectContext{
+//    const struct effect_interface_s *itfe;
+//    effect_config_t                 config;
     lvm_effect_en                   EffectType;
     BundledEffectContext            *pBundledContext;
-};
-
+}EffectContext;
 
 /* enumerated parameter settings for Volume effect */
 typedef enum
