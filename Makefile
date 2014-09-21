@@ -84,7 +84,7 @@ LDFLAGS += lvm/libbundle.a lvm/libreverb.a
 
 LIB_SRCS         += dtap.c
 LIB_SRCS         += EffectBundle.c
-LIB_C_INCLUDES   += -Iinclude
+LIB_C_INCLUDES   += -Iinclude -I./
 LIB_C_INCLUDES   += -Ilvm/Bundle/lib
 LIB_C_INCLUDES   += -Ilvm/Reverb/lib
 LIB_C_INCLUDES   += -Ilvm/Common/lib

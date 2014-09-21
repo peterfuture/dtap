@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <string.h>
 #include "EffectBundle.h"
+#include "dtap.h"
 
 #define LVM_ERROR_CHECK(LvmStatus, callingFunc, calledFunc){\
         if (LvmStatus == LVM_NULLADDRESS){\
@@ -142,6 +143,10 @@ int EffectCreate()
         for (i = 0; i < FIVEBAND_NUMBANDS; i++) {
             pContext->pBundledContext->bandGaindB[i] = EQNB_5BandSoftPresets[i];
         }
+
+        // set eq type
+        pContext->pBundledContext->SamplesToExitCountEq = 0;
+        pContext->EffectType = LVM_EQUALIZER;
 
         printf("\tEffectCreate - Calling LvmBundle_init");
         ret = LvmBundle_init(pContext);
@@ -589,3 +594,34 @@ void LvmEffect_free(EffectContext *pContext){
         }
     }
 }    /* end LvmEffect_free */
+
+
+static int bundle_init(dtap_context_t *ctx)
+{
+    EffectCreate();
+    return 0;
+}
+
+static int bundle_process(dtap_context_t *ctx, dtap_frame_t *frame)
+{
+    return 0;
+}
+
+static int bundle_config(dtap_context_t *ctx)
+{
+    return 0;
+}
+
+static int bundle_release(dtap_context_t *ctx)
+{
+    return 0;
+}
+
+ap_wrapper_t ap_android = {
+    .id = DTAP_ID_ANDROID,
+    .name = "andrpid audio effect",
+    .init = bundle_init,
+    .process = bundle_process,
+    .config = bundle_config,
+    .release = bundle_release
+};
