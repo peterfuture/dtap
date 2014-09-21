@@ -83,8 +83,9 @@ LDFLAGS += lvm/libbundle.a lvm/libreverb.a
 #======================================================
 
 LIB_SRCS         += dtap.c
-LIB_SRCS         += EffectBundle.c
+LIB_SRCS         += plugin/EffectBundle.c
 LIB_C_INCLUDES   += -Iinclude -I./
+LIB_C_INCLUDES   += -Iinclude -I./ -Iplugin
 LIB_C_INCLUDES   += -Ilvm/Bundle/lib
 LIB_C_INCLUDES   += -Ilvm/Reverb/lib
 LIB_C_INCLUDES   += -Ilvm/Common/lib
@@ -92,7 +93,8 @@ CFLAGS           += $(LIB_C_INCLUDES)
 LIB_SHARED_TARGET:= libdtap.so
 LIB_STATIC_TARGET+= libdtap.a
 OBJS_LIB_RELEASE += $(addsuffix .o, $(basename $(LIB_SRCS)))
-DIRS             += ./
+DIRS             += ./ \
+					plugin
 
 #=========================================================
 
