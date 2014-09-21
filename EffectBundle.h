@@ -182,6 +182,21 @@ static const PresetConfig gEqualizerPresets[] = {
                                         {"Pop"},
                                         {"Rock"}};
 
+
+
+
+
+int EffectCreate();
+int LvmBundle_init(EffectContext *pContext);
+int LvmBundle_process(LVM_INT16        *pIn,
+                      LVM_INT16        *pOut,
+                      int              frameCount,
+                      EffectContext    *pContext);
+
+int LvmEffect_enable(EffectContext *pContext);
+int LvmEffect_disable(EffectContext *pContext);
+void LvmEffect_free(EffectContext *pContext);
+
 #if __cplusplus
 }  // extern "C"
 #endif

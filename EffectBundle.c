@@ -20,27 +20,27 @@
 //#define LOG_NDEBUG 0
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <string.h>
 #include "EffectBundle.h"
 
-#define ALOGV 
-
 #define LVM_ERROR_CHECK(LvmStatus, callingFunc, calledFunc){\
         if (LvmStatus == LVM_NULLADDRESS){\
-            ALOGV("\tLVM_ERROR : Parameter error - "\
+            printf("\tLVM_ERROR : Parameter error - "\
                     "null pointer returned by %s in %s\n\n\n\n", callingFunc, calledFunc);\
         }\
         if (LvmStatus == LVM_ALIGNMENTERROR){\
-            ALOGV("\tLVM_ERROR : Parameter error - "\
+            printf("\tLVM_ERROR : Parameter error - "\
                     "bad alignment returned by %s in %s\n\n\n\n", callingFunc, calledFunc);\
         }\
         if (LvmStatus == LVM_INVALIDNUMSAMPLES){\
-            ALOGV("\tLVM_ERROR : Parameter error - "\
+            printf("\tLVM_ERROR : Parameter error - "\
                     "bad number of samples returned by %s in %s\n\n\n\n", callingFunc, calledFunc);\
         }\
         if (LvmStatus == LVM_OUTOFRANGE){\
-            ALOGV("\tLVM_ERROR : Parameter error - "\
+            printf("\tLVM_ERROR : Parameter error - "\
                     "out of range returned by %s in %s\n", callingFunc, calledFunc);\
         }\
     }
@@ -62,35 +62,31 @@ int LvmInitFlag = LVM_FALSE;
 /* local functions */
 #define CHECK_ARG(cond) {                     \
     if (!(cond)) {                            \
-        ALOGV("\tLVM_ERROR : Invalid argument: "#cond);      \
+        printf("\tLVM_ERROR : Invalid argument: "#cond);      \
         return -EINVAL;                       \
     }                                         \
 }
-
-
-
 
 /* Effect Library Interface Implementation */
 
 int EffectCreate()
 {
     int ret = 0;
-    int i;
+    int i = 0;
     EffectContext *pContext = NULL;
 
     if(LvmInitFlag == LVM_FALSE){
         LvmInitFlag = LVM_TRUE;
-        ALOGV("\tEffectCreate - Initializing all global memory");
-        LvmGlobalBundle_init();
+        printf("\tEffectCreate - Initializing all global memory");
     }
     
     int sessionNo = 0;
     int sessionId = 0;
 
-    pContext = (EffectContext *)dtap_malloc(sizeof(EffectContext)); 
+    pContext = (EffectContext *)malloc(sizeof(EffectContext)); 
     // If this is the first create in this session
     {
-        pContext->pBundledContext = (BundledEffectContext *)dt_malloc(sizeof(BundledEffectContext));
+        pContext->pBundledContext = (BundledEffectContext *)malloc(sizeof(BundledEffectContext));
         pContext->pBundledContext->SessionNo                = sessionNo;
         pContext->pBundledContext->SessionId                = sessionId;
         pContext->pBundledContext->hInstance                = NULL;
@@ -110,7 +106,7 @@ int EffectCreate()
         snprintf(fileName, 256, "/data/tmp/bundle_%p_pcm_in.pcm", pContext->pBundledContext);
         pContext->pBundledContext->PcmInPtr = fopen(fileName, "w");
         if (pContext->pBundledContext->PcmInPtr == NULL) {
-            ALOGV("cannot open %s", fileName);
+            printf("cannot open %s", fileName);
             ret = -EINVAL;
             goto exit;
         }
@@ -118,7 +114,7 @@ int EffectCreate()
         snprintf(fileName, 256, "/data/tmp/bundle_%p_pcm_out.pcm", pContext->pBundledContext);
         pContext->pBundledContext->PcmOutPtr = fopen(fileName, "w");
         if (pContext->pBundledContext->PcmOutPtr == NULL) {
-            ALOGV("cannot open %s", fileName);
+            printf("cannot open %s", fileName);
             fclose(pContext->pBundledContext->PcmInPtr);
            pContext->pBundledContext->PcmInPtr = NULL;
            ret = -EINVAL;
@@ -147,15 +143,15 @@ int EffectCreate()
             pContext->pBundledContext->bandGaindB[i] = EQNB_5BandSoftPresets[i];
         }
 
-        ALOGV("\tEffectCreate - Calling LvmBundle_init");
+        printf("\tEffectCreate - Calling LvmBundle_init");
         ret = LvmBundle_init(pContext);
 
         if (ret < 0){
-            ALOGV("\tLVM_ERROR : EffectCreate() Bundle init failed");
+            printf("\tLVM_ERROR : EffectCreate() Bundle init failed");
             goto exit;
         }
     }
-    ALOGV("\tEffectCreate - pBundledContext is %p", pContext->pBundledContext);
+    printf("\tEffectCreate - pBundledContext is %p", pContext->pBundledContext);
 
 exit:
     if (ret != 0) {
@@ -163,7 +159,7 @@ exit:
             free(pContext);
         }
     }
-    ALOGV("\tEffectCreate end..\n\n");
+    printf("\tEffectCreate end..\n\n");
     return ret;
 } /* end EffectCreate */
 
@@ -182,9 +178,9 @@ exit:
 //----------------------------------------------------------------------------
 
 int LvmBundle_init(EffectContext *pContext){
-    int status;
-
-    ALOGV("\tLvmBundle_init start");
+    //int status;
+    int i;
+    printf("\tLvmBundle_init start");
 
 #if 0
     pContext->config.inputCfg.accessMode                    = EFFECT_BUFFER_ACCESS_READ;
@@ -207,12 +203,12 @@ int LvmBundle_init(EffectContext *pContext){
     CHECK_ARG(pContext != NULL);
 
     if (pContext->pBundledContext->hInstance != NULL){
-        ALOGV("\tLvmBundle_init pContext->pBassBoost != NULL "
+        printf("\tLvmBundle_init pContext->pBassBoost != NULL "
                 "-> Calling pContext->pBassBoost->free()");
 
         LvmEffect_free(pContext);
 
-        ALOGV("\tLvmBundle_init pContext->pBassBoost != NULL "
+        printf("\tLvmBundle_init pContext->pBassBoost != NULL "
                 "-> Called pContext->pBassBoost->free()");
     }
 
@@ -239,19 +235,19 @@ int LvmBundle_init(EffectContext *pContext){
     LVM_ERROR_CHECK(LvmStatus, "LVM_GetMemoryTable", "LvmBundle_init")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
 
-    ALOGV("\tCreateInstance Succesfully called LVM_GetMemoryTable\n");
+    printf("\tCreateInstance Succesfully called LVM_GetMemoryTable\n");
 
     /* Allocate memory */
-    for (int i=0; i<LVM_NR_MEMORY_REGIONS; i++){
+    for (i=0; i<LVM_NR_MEMORY_REGIONS; i++){
         if (MemTab.Region[i].Size != 0){
             MemTab.Region[i].pBaseAddress = malloc(MemTab.Region[i].Size);
 
             if (MemTab.Region[i].pBaseAddress == LVM_NULL){
-                ALOGV("\tLVM_ERROR :LvmBundle_init CreateInstance Failed to allocate %ld bytes "
+                printf("\tLVM_ERROR :LvmBundle_init CreateInstance Failed to allocate %ld bytes "
                         "for region %u\n", MemTab.Region[i].Size, i );
                 bMallocFailure = LVM_TRUE;
             }else{
-                ALOGV("\tLvmBundle_init CreateInstance allocated %ld bytes for region %u at %p\n",
+                printf("\tLvmBundle_init CreateInstance allocated %ld bytes for region %u at %p\n",
                         MemTab.Region[i].Size, i, MemTab.Region[i].pBaseAddress);
             }
         }
@@ -261,12 +257,12 @@ int LvmBundle_init(EffectContext *pContext){
      * succesfully allocated and return with an error
      */
     if(bMallocFailure == LVM_TRUE){
-        for (int i=0; i<LVM_NR_MEMORY_REGIONS; i++){
+        for (i=0; i<LVM_NR_MEMORY_REGIONS; i++){
             if (MemTab.Region[i].pBaseAddress == LVM_NULL){
-                ALOGV("\tLVM_ERROR :LvmBundle_init CreateInstance Failed to allocate %ld bytes "
+                printf("\tLVM_ERROR :LvmBundle_init CreateInstance Failed to allocate %ld bytes "
                         "for region %u Not freeing\n", MemTab.Region[i].Size, i );
             }else{
-                ALOGV("\tLVM_ERROR :LvmBundle_init CreateInstance Failed: but allocated %ld bytes "
+                printf("\tLVM_ERROR :LvmBundle_init CreateInstance Failed: but allocated %ld bytes "
                      "for region %u at %p- free\n",
                      MemTab.Region[i].Size, i, MemTab.Region[i].pBaseAddress);
                 free(MemTab.Region[i].pBaseAddress);
@@ -274,7 +270,7 @@ int LvmBundle_init(EffectContext *pContext){
         }
         return -EINVAL;
     }
-    ALOGV("\tLvmBundle_init CreateInstance Succesfully malloc'd memory\n");
+    printf("\tLvmBundle_init CreateInstance Succesfully malloc'd memory\n");
 
     /* Initialise */
     pContext->pBundledContext->hInstance = LVM_NULL;
@@ -287,7 +283,7 @@ int LvmBundle_init(EffectContext *pContext){
     LVM_ERROR_CHECK(LvmStatus, "LVM_GetInstanceHandle", "LvmBundle_init")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
 
-    ALOGV("\tLvmBundle_init CreateInstance Succesfully called LVM_GetInstanceHandle\n");
+    printf("\tLvmBundle_init CreateInstance Succesfully called LVM_GetInstanceHandle\n");
 
     /* Set the initial process parameters */
     /* General parameters */
@@ -309,7 +305,7 @@ int LvmBundle_init(EffectContext *pContext){
     params.EQNB_NBands            = FIVEBAND_NUMBANDS;
     params.pEQNB_BandDefinition   = &BandDefs[0];
 
-    for (int i=0; i<FIVEBAND_NUMBANDS; i++)
+    for (i=0; i<FIVEBAND_NUMBANDS; i++)
     {
         BandDefs[i].Frequency = EQNB_5BandPresetsFrequencies[i];
         BandDefs[i].QFactor   = EQNB_5BandPresetsQFactors[i];
@@ -349,7 +345,7 @@ int LvmBundle_init(EffectContext *pContext){
     LVM_ERROR_CHECK(LvmStatus, "LVM_SetControlParameters", "LvmBundle_init")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
 
-    ALOGV("\tLvmBundle_init CreateInstance Succesfully called LVM_SetControlParameters\n");
+    printf("\tLvmBundle_init CreateInstance Succesfully called LVM_SetControlParameters\n");
 
     /* Set the headroom parameters */
     HeadroomBandDef[0].Limit_Low          = 20;
@@ -368,8 +364,8 @@ int LvmBundle_init(EffectContext *pContext){
     LVM_ERROR_CHECK(LvmStatus, "LVM_SetHeadroomParams", "LvmBundle_init")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
 
-    ALOGV("\tLvmBundle_init CreateInstance Succesfully called LVM_SetHeadroomParams\n");
-    ALOGV("\tLvmBundle_init End");
+    printf("\tLvmBundle_init CreateInstance Succesfully called LVM_SetHeadroomParams\n");
+    printf("\tLvmBundle_init End");
     return 0;
 }   /* end LvmBundle_init */
 
@@ -397,10 +393,11 @@ int LvmBundle_process(LVM_INT16        *pIn,
                       int              frameCount,
                       EffectContext    *pContext){
 
-    LVM_ControlParams_t     ActiveParams;                           /* Current control Parameters */
+    //LVM_ControlParams_t     ActiveParams;                           /* Current control Parameters */
     LVM_ReturnStatus_en     LvmStatus = LVM_SUCCESS;                /* Function call status */
     LVM_INT16               *pOutTmp;
 
+#if 0
     if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_WRITE){
         pOutTmp = pOut;
     }else if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE){
@@ -414,16 +411,16 @@ int LvmBundle_process(LVM_INT16        *pIn,
         }
         pOutTmp = pContext->pBundledContext->workBuffer;
     }else{
-        ALOGV("LVM_ERROR : LvmBundle_process invalid access mode");
+        printf("LVM_ERROR : LvmBundle_process invalid access mode");
         return -1;
     }
-
+#endif
     #ifdef LVM_PCM
     fwrite(pIn, frameCount*sizeof(LVM_INT16)*2, 1, pContext->pBundledContext->PcmInPtr);
     fflush(pContext->pBundledContext->PcmInPtr);
     #endif
 
-    //ALOGV("Calling LVM_Process");
+    //printf("Calling LVM_Process");
 
     /* Process the samples */
     LvmStatus = LVM_Process(pContext->pBundledContext->hInstance, /* Instance handle */
@@ -439,12 +436,13 @@ int LvmBundle_process(LVM_INT16        *pIn,
     fwrite(pOutTmp, frameCount*sizeof(LVM_INT16)*2, 1, pContext->pBundledContext->PcmOutPtr);
     fflush(pContext->pBundledContext->PcmOutPtr);
     #endif
-
+#if 0
     if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE){
         for (int i=0; i<frameCount*2; i++){
             pOut[i] = clamp16((LVM_INT32)pOut[i] + (LVM_INT32)pOutTmp[i]);
         }
     }
+#endif
     return 0;
 }    /* end LvmBundle_process */
 
@@ -461,7 +459,7 @@ int LvmBundle_process(LVM_INT16        *pIn,
 //----------------------------------------------------------------------------
 
 int LvmEffect_enable(EffectContext *pContext){
-    //ALOGV("\tLvmEffect_enable start");
+    //printf("\tLvmEffect_enable start");
 
     LVM_ControlParams_t     ActiveParams;                           /* Current control Parameters */
     LVM_ReturnStatus_en     LvmStatus = LVM_SUCCESS;                /* Function call status */
@@ -472,30 +470,30 @@ int LvmEffect_enable(EffectContext *pContext){
 
     LVM_ERROR_CHECK(LvmStatus, "LVM_GetControlParameters", "LvmEffect_enable")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
-    //ALOGV("\tLvmEffect_enable Succesfully called LVM_GetControlParameters\n");
+    //printf("\tLvmEffect_enable Succesfully called LVM_GetControlParameters\n");
 
     if(pContext->EffectType == LVM_BASS_BOOST) {
-        ALOGV("\tLvmEffect_enable : Enabling LVM_BASS_BOOST");
+        printf("\tLvmEffect_enable : Enabling LVM_BASS_BOOST");
         ActiveParams.BE_OperatingMode       = LVM_BE_ON;
     }
     if(pContext->EffectType == LVM_VIRTUALIZER) {
-        ALOGV("\tLvmEffect_enable : Enabling LVM_VIRTUALIZER");
+        printf("\tLvmEffect_enable : Enabling LVM_VIRTUALIZER");
         ActiveParams.VirtualizerOperatingMode   = LVM_MODE_ON;
     }
     if(pContext->EffectType == LVM_EQUALIZER) {
-        ALOGV("\tLvmEffect_enable : Enabling LVM_EQUALIZER");
+        printf("\tLvmEffect_enable : Enabling LVM_EQUALIZER");
         ActiveParams.EQNB_OperatingMode     = LVM_EQNB_ON;
     }
     if(pContext->EffectType == LVM_VOLUME) {
-        ALOGV("\tLvmEffect_enable : Enabling LVM_VOLUME");
+        printf("\tLvmEffect_enable : Enabling LVM_VOLUME");
     }
 
     LvmStatus = LVM_SetControlParameters(pContext->pBundledContext->hInstance, &ActiveParams);
     LVM_ERROR_CHECK(LvmStatus, "LVM_SetControlParameters", "LvmEffect_enable")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
 
-    //ALOGV("\tLvmEffect_enable Succesfully called LVM_SetControlParameters\n");
-    //ALOGV("\tLvmEffect_enable end");
+    //printf("\tLvmEffect_enable Succesfully called LVM_SetControlParameters\n");
+    //printf("\tLvmEffect_enable end");
     return 0;
 }
 
@@ -512,7 +510,7 @@ int LvmEffect_enable(EffectContext *pContext){
 //----------------------------------------------------------------------------
 
 int LvmEffect_disable(EffectContext *pContext){
-    //ALOGV("\tLvmEffect_disable start");
+    //printf("\tLvmEffect_disable start");
 
     LVM_ControlParams_t     ActiveParams;                           /* Current control Parameters */
     LVM_ReturnStatus_en     LvmStatus = LVM_SUCCESS;                /* Function call status */
@@ -522,30 +520,30 @@ int LvmEffect_disable(EffectContext *pContext){
 
     LVM_ERROR_CHECK(LvmStatus, "LVM_GetControlParameters", "LvmEffect_disable")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
-    //ALOGV("\tLvmEffect_disable Succesfully called LVM_GetControlParameters\n");
+    //printf("\tLvmEffect_disable Succesfully called LVM_GetControlParameters\n");
 
     if(pContext->EffectType == LVM_BASS_BOOST) {
-        ALOGV("\tLvmEffect_disable : Disabling LVM_BASS_BOOST");
+        printf("\tLvmEffect_disable : Disabling LVM_BASS_BOOST");
         ActiveParams.BE_OperatingMode       = LVM_BE_OFF;
     }
     if(pContext->EffectType == LVM_VIRTUALIZER) {
-        ALOGV("\tLvmEffect_disable : Disabling LVM_VIRTUALIZER");
+        printf("\tLvmEffect_disable : Disabling LVM_VIRTUALIZER");
         ActiveParams.VirtualizerOperatingMode   = LVM_MODE_OFF;
     }
     if(pContext->EffectType == LVM_EQUALIZER) {
-        ALOGV("\tLvmEffect_disable : Disabling LVM_EQUALIZER");
+        printf("\tLvmEffect_disable : Disabling LVM_EQUALIZER");
         ActiveParams.EQNB_OperatingMode     = LVM_EQNB_OFF;
     }
     if(pContext->EffectType == LVM_VOLUME) {
-        ALOGV("\tLvmEffect_disable : Disabling LVM_VOLUME");
+        printf("\tLvmEffect_disable : Disabling LVM_VOLUME");
     }
 
     LvmStatus = LVM_SetControlParameters(pContext->pBundledContext->hInstance, &ActiveParams);
     LVM_ERROR_CHECK(LvmStatus, "LVM_SetControlParameters", "LvmEffect_disable")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
 
-    //ALOGV("\tLvmEffect_disable Succesfully called LVM_SetControlParameters\n");
-    //ALOGV("\tLvmEffect_disable end");
+    //printf("\tLvmEffect_disable Succesfully called LVM_SetControlParameters\n");
+    //printf("\tLvmEffect_disable end");
     return 0;
 }
 
@@ -563,9 +561,9 @@ int LvmEffect_disable(EffectContext *pContext){
 
 void LvmEffect_free(EffectContext *pContext){
     LVM_ReturnStatus_en     LvmStatus=LVM_SUCCESS;         /* Function call status */
-    LVM_ControlParams_t     params;                        /* Control Parameters */
+    //LVM_ControlParams_t     params;                        /* Control Parameters */
     LVM_MemTab_t            MemTab;
-
+    int i;
     /* Free the algorithm memory */
     LvmStatus = LVM_GetMemoryTable(pContext->pBundledContext->hInstance,
                                    &MemTab,
@@ -573,18 +571,18 @@ void LvmEffect_free(EffectContext *pContext){
 
     LVM_ERROR_CHECK(LvmStatus, "LVM_GetMemoryTable", "LvmEffect_free")
 
-    for (int i=0; i<LVM_NR_MEMORY_REGIONS; i++){
+    for (i=0; i<LVM_NR_MEMORY_REGIONS; i++){
         if (MemTab.Region[i].Size != 0){
             if (MemTab.Region[i].pBaseAddress != NULL){
-                ALOGV("\tLvmEffect_free - START freeing %ld bytes for region %u at %p\n",
+                printf("\tLvmEffect_free - START freeing %ld bytes for region %u at %p\n",
                         MemTab.Region[i].Size, i, MemTab.Region[i].pBaseAddress);
 
                 free(MemTab.Region[i].pBaseAddress);
 
-                ALOGV("\tLvmEffect_free - END   freeing %ld bytes for region %u at %p\n",
+                printf("\tLvmEffect_free - END   freeing %ld bytes for region %u at %p\n",
                         MemTab.Region[i].Size, i, MemTab.Region[i].pBaseAddress);
             }else{
-                ALOGV("\tLVM_ERROR : LvmEffect_free - trying to free with NULL pointer %ld bytes "
+                printf("\tLVM_ERROR : LvmEffect_free - trying to free with NULL pointer %ld bytes "
                         "for region %u at %p ERROR\n",
                         MemTab.Region[i].Size, i, MemTab.Region[i].pBaseAddress);
             }

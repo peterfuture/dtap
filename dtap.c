@@ -1,8 +1,10 @@
 #include "dtap.h"
+#include "EffectBundle.h"
 
 int dtap_init(dtap_context_t * ctx)
 {
     dtap_print("dtap_init ok \n");
+    EffectCreate();
     return 0;
 }
 
