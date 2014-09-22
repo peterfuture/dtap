@@ -39,6 +39,7 @@ int dtap_init(dtap_context_t *ctx)
     ret = wrapper->init(ctx);
     dtap_print("dtap_init ok \n");
     ctx->inited = 1;
+    dtap_lock_init(&mutex, NULL);
 EXIT:
     return ret;
 }
@@ -48,15 +49,23 @@ int dtap_process(dtap_context_t *ctx, dtap_frame_t *frame)
 
     if(!ctx->inited)
         dtap_init(ctx);
-    
+    dtap_lock(&mutex); 
     dtap_print("dtap_process ok \n");
+    dtap_unlock(&mutex); 
     return 0;
 }
 
-int dtap_reset(dtap_context_t *ctx, dtap_para_t *para);
+int dtap_reset(dtap_context_t *ctx, dtap_para_t *para)
+{
+    dtap_lock(&mutex); 
+    dtap_unlock(&mutex); 
+    return 0;
+}
 
 int dtap_release(dtap_context_t * ctx)
 {
+    dtap_lock(&mutex); 
     dtap_print("dtap_release ok \n");
+    dtap_unlock(&mutex); 
     return 0;
 }

@@ -25,7 +25,10 @@ typedef struct{
 }dtap_frame_t;
 
 typedef struct{
-    int rate;
+    int samplerate;
+    int channels;
+    int bps;
+    int effect_id;  // CLASSIC for example
 }dtap_para_t;
 
 typedef struct{
@@ -34,7 +37,7 @@ typedef struct{
 
     int (*init)     (struct dtap_context *ctx);
     int (*process)  (struct dtap_context *ctx, dtap_frame_t *frame);
-    int (*config)   (struct dtap_context *ctx, dtap_para_t *ppara);
+    int (*config)   (struct dtap_context *ctx);
     int (*release)  (struct dtap_context *ctx);
 }ap_wrapper_t;
 

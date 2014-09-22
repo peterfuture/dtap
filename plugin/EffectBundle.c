@@ -56,10 +56,6 @@ static inline int16_t clamp16(int32_t sample)
     return sample;
 }
 
-
-// Flag to allow a one time init of global memory, only happens on first call ever
-int LvmInitFlag = LVM_FALSE;
-
 /* local functions */
 #define CHECK_ARG(cond) {                     \
     if (!(cond)) {                            \
@@ -70,103 +66,34 @@ int LvmInitFlag = LVM_FALSE;
 
 /* Effect Library Interface Implementation */
 
-int EffectCreate()
+static int samplerate_convert(int rate)
 {
-    int ret = 0;
-    int i = 0;
-    EffectContext *pContext = NULL;
-
-    if(LvmInitFlag == LVM_FALSE){
-        LvmInitFlag = LVM_TRUE;
-        printf("\tEffectCreate - Initializing all global memory");
-    }
-    
-    int sessionNo = 0;
-    int sessionId = 0;
-
-    pContext = (EffectContext *)malloc(sizeof(EffectContext)); 
-    // If this is the first create in this session
+    switch(rate)
     {
-        pContext->pBundledContext = (BundledEffectContext *)malloc(sizeof(BundledEffectContext));
-        pContext->pBundledContext->SessionNo                = sessionNo;
-        pContext->pBundledContext->SessionId                = sessionId;
-        pContext->pBundledContext->hInstance                = NULL;
-        pContext->pBundledContext->bVolumeEnabled           = LVM_FALSE;
-        pContext->pBundledContext->bEqualizerEnabled        = LVM_FALSE;
-        pContext->pBundledContext->bBassEnabled             = LVM_FALSE;
-        pContext->pBundledContext->bBassTempDisabled        = LVM_FALSE;
-        pContext->pBundledContext->bVirtualizerEnabled      = LVM_FALSE;
-        pContext->pBundledContext->bVirtualizerTempDisabled = LVM_FALSE;
-        pContext->pBundledContext->NumberEffectsEnabled     = 0;
-        pContext->pBundledContext->NumberEffectsCalled      = 0;
-        pContext->pBundledContext->firstVolume              = LVM_TRUE;
-        pContext->pBundledContext->volume                   = 0;
-
-        #ifdef LVM_PCM
-        char fileName[256];
-        snprintf(fileName, 256, "/data/tmp/bundle_%p_pcm_in.pcm", pContext->pBundledContext);
-        pContext->pBundledContext->PcmInPtr = fopen(fileName, "w");
-        if (pContext->pBundledContext->PcmInPtr == NULL) {
-            printf("cannot open %s", fileName);
-            ret = -EINVAL;
-            goto exit;
-        }
-
-        snprintf(fileName, 256, "/data/tmp/bundle_%p_pcm_out.pcm", pContext->pBundledContext);
-        pContext->pBundledContext->PcmOutPtr = fopen(fileName, "w");
-        if (pContext->pBundledContext->PcmOutPtr == NULL) {
-            printf("cannot open %s", fileName);
-            fclose(pContext->pBundledContext->PcmInPtr);
-           pContext->pBundledContext->PcmInPtr = NULL;
-           ret = -EINVAL;
-           goto exit;
-        }
-        #endif
-
-        /* Saved strength is used to return the exact strength that was used in the set to the get
-         * because we map the original strength range of 0:1000 to 1:15, and this will avoid
-         * quantisation like effect when returning
-         */
-        pContext->pBundledContext->BassStrengthSaved        = 0;
-        pContext->pBundledContext->VirtStrengthSaved        = 0;
-        pContext->pBundledContext->CurPreset                = PRESET_CUSTOM;
-        pContext->pBundledContext->levelSaved               = 0;
-        pContext->pBundledContext->bMuteEnabled             = LVM_FALSE;
-        pContext->pBundledContext->bStereoPositionEnabled   = LVM_FALSE;
-        pContext->pBundledContext->positionSaved            = 0;
-        pContext->pBundledContext->workBuffer               = NULL;
-        pContext->pBundledContext->frameCount               = -1;
-        pContext->pBundledContext->SamplesToExitCountVirt   = 0;
-        pContext->pBundledContext->SamplesToExitCountBb     = 0;
-        pContext->pBundledContext->SamplesToExitCountEq     = 0;
-
-        for (i = 0; i < FIVEBAND_NUMBANDS; i++) {
-            pContext->pBundledContext->bandGaindB[i] = EQNB_5BandSoftPresets[i];
-        }
-
-        // set eq type
-        pContext->pBundledContext->SamplesToExitCountEq = 0;
-        pContext->EffectType = LVM_EQUALIZER;
-
-        printf("\tEffectCreate - Calling LvmBundle_init");
-        ret = LvmBundle_init(pContext);
-
-        if (ret < 0){
-            printf("\tLVM_ERROR : EffectCreate() Bundle init failed");
-            goto exit;
-        }
+        case 8000:
+            return LVM_FS_8000;
+        case 11025:
+            return LVM_FS_11025;
+        case 12000:
+            return LVM_FS_12000;
+        case 16000:
+            return LVM_FS_16000;
+        case 22050:
+            return LVM_FS_22050;
+        case 24000:
+            return LVM_FS_24000;
+        case 32000:
+            return LVM_FS_32000;
+        case 44100:
+            return LVM_FS_44100;
+        case 48000:
+            return LVM_FS_48000;
+        default:
+            return LVM_FS_48000;
     }
-    printf("\tEffectCreate - pBundledContext is %p", pContext->pBundledContext);
 
-exit:
-    if (ret != 0) {
-        if (pContext != NULL) {
-            free(pContext);
-        }
-    }
-    printf("\tEffectCreate end..\n\n");
-    return ret;
-} /* end EffectCreate */
+    return LVM_FS_48000;
+}
 
 
 //----------------------------------------------------------------------------
@@ -185,7 +112,7 @@ exit:
 int LvmBundle_init(EffectContext *pContext){
     //int status;
     int i;
-    printf("\tLvmBundle_init start");
+    printf("\tLvmBundle_init start \n");
 
 #if 0
     pContext->config.inputCfg.accessMode                    = EFFECT_BUFFER_ACCESS_READ;
@@ -279,7 +206,7 @@ int LvmBundle_init(EffectContext *pContext){
 
     /* Initialise */
     pContext->pBundledContext->hInstance = LVM_NULL;
-
+    
     /* Init sets the instance handle */
     LvmStatus = LVM_GetInstanceHandle(&pContext->pBundledContext->hInstance,
                                       &MemTab,
@@ -598,8 +525,105 @@ void LvmEffect_free(EffectContext *pContext){
 
 static int bundle_init(dtap_context_t *ctx)
 {
-    EffectCreate();
-    return 0;
+    int ret = 0;
+    int i = 0;
+    EffectContext *pContext = NULL;
+    
+    int sessionNo = 0;
+    int sessionId = 0;
+
+    pContext = (EffectContext *)malloc(sizeof(EffectContext)); 
+    // If this is the first create in this session
+    if(pContext)
+    {
+        pContext->pBundledContext = (BundledEffectContext *)malloc(sizeof(BundledEffectContext));
+        pContext->pBundledContext->SessionNo                = sessionNo;
+        pContext->pBundledContext->SessionId                = sessionId;
+        pContext->pBundledContext->hInstance                = NULL;
+        pContext->pBundledContext->bVolumeEnabled           = LVM_FALSE;
+        pContext->pBundledContext->bEqualizerEnabled        = LVM_FALSE;
+        pContext->pBundledContext->bBassEnabled             = LVM_FALSE;
+        pContext->pBundledContext->bBassTempDisabled        = LVM_FALSE;
+        pContext->pBundledContext->bVirtualizerEnabled      = LVM_FALSE;
+        pContext->pBundledContext->bVirtualizerTempDisabled = LVM_FALSE;
+        pContext->pBundledContext->NumberEffectsEnabled     = 0;
+        pContext->pBundledContext->NumberEffectsCalled      = 0;
+        pContext->pBundledContext->firstVolume              = LVM_TRUE;
+        pContext->pBundledContext->volume                   = 0;
+
+        #ifdef LVM_PCM
+        char fileName[256];
+        snprintf(fileName, 256, "/data/tmp/bundle_%p_pcm_in.pcm", pContext->pBundledContext);
+        pContext->pBundledContext->PcmInPtr = fopen(fileName, "w");
+        if (pContext->pBundledContext->PcmInPtr == NULL) {
+            printf("cannot open %s", fileName);
+            ret = -EINVAL;
+            goto exit;
+        }
+
+        snprintf(fileName, 256, "/data/tmp/bundle_%p_pcm_out.pcm", pContext->pBundledContext);
+        pContext->pBundledContext->PcmOutPtr = fopen(fileName, "w");
+        if (pContext->pBundledContext->PcmOutPtr == NULL) {
+            printf("cannot open %s", fileName);
+            fclose(pContext->pBundledContext->PcmInPtr);
+           pContext->pBundledContext->PcmInPtr = NULL;
+           ret = -EINVAL;
+           goto exit;
+        }
+        #endif
+
+        /* Saved strength is used to return the exact strength that was used in the set to the get
+         * because we map the original strength range of 0:1000 to 1:15, and this will avoid
+         * quantisation like effect when returning
+         */
+        pContext->pBundledContext->BassStrengthSaved        = 0;
+        pContext->pBundledContext->VirtStrengthSaved        = 0;
+        pContext->pBundledContext->CurPreset                = PRESET_CUSTOM;
+        pContext->pBundledContext->levelSaved               = 0;
+        pContext->pBundledContext->bMuteEnabled             = LVM_FALSE;
+        pContext->pBundledContext->bStereoPositionEnabled   = LVM_FALSE;
+        pContext->pBundledContext->positionSaved            = 0;
+        pContext->pBundledContext->workBuffer               = NULL;
+        pContext->pBundledContext->frameCount               = -1;
+        pContext->pBundledContext->SamplesToExitCountVirt   = 0;
+        pContext->pBundledContext->SamplesToExitCountBb     = 0;
+        pContext->pBundledContext->SamplesToExitCountEq     = 0;
+
+        for (i = 0; i < FIVEBAND_NUMBANDS; i++) {
+            pContext->pBundledContext->bandGaindB[i] = EQNB_5BandSoftPresets[i];
+        }
+
+        // set eq type
+        pContext->pBundledContext->SamplesToExitCountEq = 0;
+        pContext->EffectType = LVM_EQUALIZER;
+
+        printf("\tEffectCreate - Calling LvmBundle_init \n");
+        ret = LvmBundle_init(pContext);
+
+        if (ret < 0){
+            printf("\tLVM_ERROR : EffectCreate() Bundle init failed \n");
+            goto exit;
+        }
+    }
+    else
+    {
+        ret = -1;
+        printf("\tEffectCreate - failed \n");
+        goto exit;
+
+    }
+
+    ctx->ap_priv = (void *)pContext;
+    printf("\tEffectCreate - pBundledContext is %p", pContext->pBundledContext);
+
+exit:
+    if (ret != 0) {
+        if (pContext != NULL) {
+            free(pContext);
+        }
+    }
+    printf("\tEffectCreate end..\n\n");
+    return ret;
 }
 
 static int bundle_process(dtap_context_t *ctx, dtap_frame_t *frame)
