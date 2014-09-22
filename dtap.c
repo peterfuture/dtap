@@ -53,7 +53,6 @@ int dtap_process(dtap_context_t *ctx, dtap_frame_t *frame)
     ap_wrapper_t *wrapper = ctx->wrapper;
     wrapper->process(ctx, frame);
     dtap_unlock(&mutex); 
-    dtap_print("dtap_process ok \n");
     return 0;
 }
 

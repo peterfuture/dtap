@@ -328,12 +328,12 @@ int LvmBundle_process(LVM_INT16        *pIn,
     //LVM_ControlParams_t     ActiveParams;                           /* Current control Parameters */
     LVM_ReturnStatus_en     LvmStatus = LVM_SUCCESS;                /* Function call status */
     LVM_INT16               *pOutTmp;
-
-    pOutTmp = pOut;
 #if 0
     if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_WRITE){
         pOutTmp = pOut;
-    }else if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE){
+    }else if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE)
+#endif
+    {
         if (pContext->pBundledContext->frameCount != frameCount) {
             if (pContext->pBundledContext->workBuffer != NULL) {
                 free(pContext->pBundledContext->workBuffer);
@@ -343,16 +343,13 @@ int LvmBundle_process(LVM_INT16        *pIn,
             pContext->pBundledContext->frameCount = frameCount;
         }
         pOutTmp = pContext->pBundledContext->workBuffer;
-    }else{
+    }
+#if 0
+    else{
         printf("LVM_ERROR : LvmBundle_process invalid access mode");
         return -1;
     }
 #endif
-    #ifdef LVM_PCM
-    fwrite(pIn, frameCount*sizeof(LVM_INT16)*2, 1, pContext->pBundledContext->PcmInPtr);
-    fflush(pContext->pBundledContext->PcmInPtr);
-    #endif
-
     //printf("Calling LVM_Process");
 
     /* Process the samples */
@@ -365,17 +362,13 @@ int LvmBundle_process(LVM_INT16        *pIn,
     LVM_ERROR_CHECK(LvmStatus, "LVM_Process", "LvmBundle_process")
     if(LvmStatus != LVM_SUCCESS) return -EINVAL;
 
-    #ifdef LVM_PCM
-    fwrite(pOutTmp, frameCount*sizeof(LVM_INT16)*2, 1, pContext->pBundledContext->PcmOutPtr);
-    fflush(pContext->pBundledContext->PcmOutPtr);
-    #endif
-#if 0
-    if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE){
-        for (int i=0; i<frameCount*2; i++){
+    int i;
+    //if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE)
+    {
+        for (i=0; i<frameCount*2; i++){
             pOut[i] = clamp16((LVM_INT32)pOut[i] + (LVM_INT32)pOutTmp[i]);
         }
     }
-#endif
     return 0;
 }    /* end LvmBundle_process */
 
@@ -529,7 +522,7 @@ static int bundle_init(dtap_context_t *ctx)
     int ret = 0;
     int i = 0;
     EffectContext *pContext = NULL;
-    
+    dtap_para_t *ppara = &ctx->para;    
     int sessionNo = 0;
     int sessionId = 0;
 
@@ -552,27 +545,6 @@ static int bundle_init(dtap_context_t *ctx)
         pContext->pBundledContext->firstVolume              = LVM_TRUE;
         pContext->pBundledContext->volume                   = 0;
 
-        #ifdef LVM_PCM
-        char fileName[256];
-        snprintf(fileName, 256, "/data/tmp/bundle_%p_pcm_in.pcm", pContext->pBundledContext);
-        pContext->pBundledContext->PcmInPtr = fopen(fileName, "w");
-        if (pContext->pBundledContext->PcmInPtr == NULL) {
-            printf("cannot open %s", fileName);
-            ret = -EINVAL;
-            goto exit;
-        }
-
-        snprintf(fileName, 256, "/data/tmp/bundle_%p_pcm_out.pcm", pContext->pBundledContext);
-        pContext->pBundledContext->PcmOutPtr = fopen(fileName, "w");
-        if (pContext->pBundledContext->PcmOutPtr == NULL) {
-            printf("cannot open %s", fileName);
-            fclose(pContext->pBundledContext->PcmInPtr);
-           pContext->pBundledContext->PcmInPtr = NULL;
-           ret = -EINVAL;
-           goto exit;
-        }
-        #endif
-
         /* Saved strength is used to return the exact strength that was used in the set to the get
          * because we map the original strength range of 0:1000 to 1:15, and this will avoid
          * quantisation like effect when returning
@@ -594,10 +566,6 @@ static int bundle_init(dtap_context_t *ctx)
             pContext->pBundledContext->bandGaindB[i] = EQNB_5BandSoftPresets[i];
         }
 
-        // set eq type
-        //pContext->pBundledContext->SamplesToExitCountEq = 0;
-        //pContext->EffectType = LVM_EQUALIZER;
-
         printf("\tEffectCreate - Calling LvmBundle_init \n");
         ret = LvmBundle_init(pContext);
 
@@ -605,6 +573,67 @@ static int bundle_init(dtap_context_t *ctx)
             printf("\tLVM_ERROR : EffectCreate() Bundle init failed \n");
             goto exit;
         }
+
+        //set config
+
+        LVM_Fs_en   SampleRate;
+        switch (ppara->samplerate) {
+        case 8000:
+            SampleRate = LVM_FS_8000;
+            pContext->pBundledContext->SamplesPerSecond = 8000*2; // 2 secs Stereo
+            break;
+        case 16000:
+            SampleRate = LVM_FS_16000;
+            pContext->pBundledContext->SamplesPerSecond = 16000*2; // 2 secs Stereo
+            break;
+        case 22050:
+            SampleRate = LVM_FS_22050;
+            pContext->pBundledContext->SamplesPerSecond = 22050*2; // 2 secs Stereo
+            break;
+        case 32000:
+            SampleRate = LVM_FS_32000;
+            pContext->pBundledContext->SamplesPerSecond = 32000*2; // 2 secs Stereo
+            break;
+        case 44100:
+            SampleRate = LVM_FS_44100;
+            pContext->pBundledContext->SamplesPerSecond = 44100*2; // 2 secs Stereo
+            break;
+        case 48000:
+            SampleRate = LVM_FS_48000;
+            pContext->pBundledContext->SamplesPerSecond = 48000*2; // 2 secs Stereo
+            break;
+        default:
+            printf("\tEffect_setConfig invalid sampling rate %d", ppara->samplerate);
+            return -EINVAL;
+        }
+
+        if(pContext->pBundledContext->SampleRate != SampleRate){
+
+            LVM_ControlParams_t     ActiveParams;
+            LVM_ReturnStatus_en     LvmStatus = LVM_SUCCESS;
+
+            printf("\tEffect_setConfig change sampling rate to %d", SampleRate);
+
+            /* Get the current settings */
+            LvmStatus = LVM_GetControlParameters(pContext->pBundledContext->hInstance,
+                                         &ActiveParams);
+
+            LVM_ERROR_CHECK(LvmStatus, "LVM_GetControlParameters", "Effect_setConfig")
+            if(LvmStatus != LVM_SUCCESS) return -EINVAL;
+
+            ActiveParams.SampleRate = SampleRate;
+
+            LvmStatus = LVM_SetControlParameters(pContext->pBundledContext->hInstance, &ActiveParams);
+
+            LVM_ERROR_CHECK(LvmStatus, "LVM_SetControlParameters", "Effect_setConfig")
+            printf("\tEffect_setConfig Succesfully called LVM_SetControlParameters\n");
+            pContext->pBundledContext->SampleRate = SampleRate;
+        }
+        
+        //enable eq
+        pContext->EffectType = LVM_EQUALIZER;
+        LvmEffect_enable(pContext);
+
     }
     else
     {
@@ -649,11 +678,11 @@ static int bundle_process(dtap_context_t *ctx, dtap_frame_t *frame)
     LVM_INT16 *pout = (LVM_INT16 *)ctx->out;
     int bytes_per_sample = ppara->channels * ppara->data_width / 8;
     int frameCount = frame->in_size / bytes_per_sample ; // 10ms once time
-    printf("\t framecount: %d insize:%d \n", frameCount, frame->in_size);
+    //printf("\t framecount: %d insize:%d \n", frameCount, frame->in_size);
     LvmBundle_process(pin, pout, frameCount, pContext);
 
     memcpy(pin, pout, frame->in_size);
-    printf("\t process ok \n");
+    //printf("\t process ok \n");
 
     return 0;
 }
