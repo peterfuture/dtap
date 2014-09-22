@@ -17,17 +17,14 @@ enum{
 struct dtap_context;
 
 typedef struct{
-    uint8_t *in_buf;
-    uint8_t *out_buf;
-
-    int in_len;
-    int out_len;
+    uint8_t *in;
+    int in_size;
 }dtap_frame_t;
 
 typedef struct{
     int samplerate;
     int channels;
-    int bps;
+    int data_width;
     int effect_id;  // CLASSIC for example
 }dtap_para_t;
 
@@ -45,10 +42,13 @@ typedef struct dtap_context{
     dtap_para_t para;   // used to config ap
     char name[MAX_NAME_LEN];
     ap_wrapper_t *wrapper;
+    uint8_t *out;
+    int out_size;
     int inited;
     void *ap_priv;
 }dtap_context_t;
 
+int dtap_init(dtap_context_t *ctx);
 int dtap_process(dtap_context_t *ctx, dtap_frame_t *frame);
 int dtap_reset(dtap_context_t *ctx, dtap_para_t *para);
 int dtap_release(dtap_context_t *ctx);

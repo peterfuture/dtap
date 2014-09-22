@@ -50,14 +50,18 @@ int dtap_process(dtap_context_t *ctx, dtap_frame_t *frame)
     if(!ctx->inited)
         dtap_init(ctx);
     dtap_lock(&mutex); 
-    dtap_print("dtap_process ok \n");
+    ap_wrapper_t *wrapper = ctx->wrapper;
+    wrapper->process(ctx, frame);
     dtap_unlock(&mutex); 
+    dtap_print("dtap_process ok \n");
     return 0;
 }
 
 int dtap_reset(dtap_context_t *ctx, dtap_para_t *para)
 {
     dtap_lock(&mutex); 
+    ap_wrapper_t *wrapper = ctx->wrapper;
+    wrapper->release(ctx);
     dtap_unlock(&mutex); 
     return 0;
 }

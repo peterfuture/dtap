@@ -329,6 +329,7 @@ int LvmBundle_process(LVM_INT16        *pIn,
     LVM_ReturnStatus_en     LvmStatus = LVM_SUCCESS;                /* Function call status */
     LVM_INT16               *pOutTmp;
 
+    pOutTmp = pOut;
 #if 0
     if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_WRITE){
         pOutTmp = pOut;
@@ -594,8 +595,8 @@ static int bundle_init(dtap_context_t *ctx)
         }
 
         // set eq type
-        pContext->pBundledContext->SamplesToExitCountEq = 0;
-        pContext->EffectType = LVM_EQUALIZER;
+        //pContext->pBundledContext->SamplesToExitCountEq = 0;
+        //pContext->EffectType = LVM_EQUALIZER;
 
         printf("\tEffectCreate - Calling LvmBundle_init \n");
         ret = LvmBundle_init(pContext);
@@ -628,6 +629,32 @@ exit:
 
 static int bundle_process(dtap_context_t *ctx, dtap_frame_t *frame)
 {
+    EffectContext *pContext = (EffectContext *)ctx->ap_priv;
+    dtap_para_t *ppara = &ctx->para;
+
+    if(!ctx->out)
+    {
+        ctx->out = (uint8_t *)malloc(frame->in_size);
+        ctx->out_size = frame->in_size;
+    }
+
+    if(ctx->out && ctx->out_size < frame->in_size)
+    {
+        free(ctx->out);
+        ctx->out = (uint8_t *)malloc(frame->in_size);
+        ctx->out_size = frame->in_size;
+    }
+
+    LVM_INT16 *pin = (LVM_INT16 *)frame->in;
+    LVM_INT16 *pout = (LVM_INT16 *)ctx->out;
+    int bytes_per_sample = ppara->channels * ppara->data_width / 8;
+    int frameCount = frame->in_size / bytes_per_sample ; // 10ms once time
+    printf("\t framecount: %d insize:%d \n", frameCount, frame->in_size);
+    LvmBundle_process(pin, pout, frameCount, pContext);
+
+    memcpy(pin, pout, frame->in_size);
+    printf("\t process ok \n");
+
     return 0;
 }
 
@@ -638,6 +665,12 @@ static int bundle_config(dtap_context_t *ctx)
 
 static int bundle_release(dtap_context_t *ctx)
 {
+    EffectContext *pContext = (EffectContext *)ctx->ap_priv;
+    if(ctx->out)
+        free(ctx->out);
+    ctx->out = NULL;
+    ctx->out_size = 0;
+
     return 0;
 }
 
