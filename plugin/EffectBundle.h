@@ -68,6 +68,7 @@ typedef struct BundledEffectContext{
     bool                            bVirtualizerTempDisabled; /* Flag for effect to be re-enabled */
     int                             NumberEffectsEnabled;     /* Effects in this session */
     int                             NumberEffectsCalled;      /* Effects called so far */
+    uint32_t                        EffectsBitMap;            /*  Effects enable bit mask */
     bool                            firstVolume;              /* No smoothing on first Vol change */
     // Saved parameters for each effect */
     // Bass Boost

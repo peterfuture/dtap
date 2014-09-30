@@ -5,10 +5,17 @@ static ap_wrapper_t *g_ap;
 static int dtap_inited = 0;
 static dtap_lock_t mutex;
 
+#define EQ_ANDROID 1
+
 static void reg_ap_all()
 {
-    extern ap_wrapper_t ap_android;
-    g_ap = &ap_android;
+#if EQ_ANDROID
+    extern ap_wrapper_t ap_lvm_eq;
+    g_ap = &ap_lvm_eq;
+#else
+    extern ap_wrapper_t ap_private;
+    g_ap = &ap_private;
+#endif
 }
 
 static int dtap_select(dtap_context_t *ctx)
@@ -57,6 +64,15 @@ int dtap_process(dtap_context_t *ctx, dtap_frame_t *frame)
 }
 
 int dtap_reset(dtap_context_t *ctx, dtap_para_t *para)
+{
+    dtap_lock(&mutex); 
+    ap_wrapper_t *wrapper = ctx->wrapper;
+    wrapper->release(ctx);
+    dtap_unlock(&mutex); 
+    return 0;
+}
+
+int dtap_update(dtap_context_t *ctx)
 {
     dtap_lock(&mutex); 
     ap_wrapper_t *wrapper = ctx->wrapper;
