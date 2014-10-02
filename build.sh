@@ -2,7 +2,7 @@
 
 usage()
 {
-    echo "usage: `basename $0` linux | android | all"
+    echo "usage: `basename $0` linux | android | all | clean"
 }
 
 OPT=$1
@@ -23,37 +23,57 @@ mkdir -p build
 case $OPT in
      linux|Linux) echo "build for Linux platform.."
          cd lvm
-         make clean
-         make
+         make -f makefile clean
+         make -f makefile
          cd ..
          mkdir -p build/linux
-         cp lvm/*.so  build/linux
          cp lvm/*.a   build/linux
-         cp lvm/*.exe build/linux
-         make
+         make -f makefile clean
+         make -f makefile
+         cp *.so  build/linux
+         cp *.a   build/linux
+         cp *.exe build/linux
          ;;
      android|Android) echo "build for Android platform.."
-         make -f  makefile-android
+         cd lvm
+         make -f makefile-android clean
+         make -f makefile-android
+         cd ..
          mkdir -p build/android
+         cp lvm/*.a   build/android
+         make -f makefile-android clean
+         make -f makefile-android
          cp *.so  build/android
-         cp *.a   build/android
-         cp *.exe build/android
          ;;
      all|All) echo "build for Linux & Android platform.."
-        make -f  makefile-linux
+         cd lvm
+         make -f makefile clean
+         make -f makefile
+         cd ..
          mkdir -p build/linux
+         cp lvm/*.a   build/linux
+         make -f makefile clean
+         make -f makefile
          cp *.so  build/linux
          cp *.a   build/linux
          cp *.exe build/linux
          
-         make clean
-         
-         make -f  makefile-android
+         cd lvm
+         make -f makefile-android clean
+         make -f makefile-android
+         cd ..
          mkdir -p build/android
+         cp lvm/*.a   build/android
+         make -f makefile-android clean
+         make -f makefile-android
          cp *.so  build/android
-         cp *.a   build/android
-         cp *.exe build/android
          ;;
+     clean|CLEAN) echo "enter clean.."
+         cd lvm
+         make -f makefile clean
+         cd ..
+         make -f makefile clean
+         ;;    
      *)usage
          ;;
  esac

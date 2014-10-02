@@ -63,21 +63,18 @@ DT_CFLAGS += -DENABLE_REVERB=1
 export MAKEROOT := $(shell pwd)
 LOCAL_PATH      := $(shell pwd)
 
-AR       = ar
-CC       = gcc
-CXX      = g++
-STRIP    = strip 
+CC       = arm-linux-androideabi-gcc
+LD       = arm-linux-androideabi-ld
+AR       = arm-linux-androideabi-ar
+STRIP    = arm-linux-androideabi-strip
 
 CFLAGS  += -Wall 
 DT_DEBUG = -g
 
-CFLAGS  += -I/usr/include -I/usr/local/include
-LDFLAGS += -L/usr/local/lib -L/usr/lib -L./
+#CFLAGS  += -I/usr/include -I/usr/local/include
+#LDFLAGS += -L/usr/local/lib -L/usr/lib -L./
 
-LDFLAGS += -lpthread -lm 
-LDFLAGS += $(LDFLAGS-yes)
-
-
+#LDFLAGS += -lpthread -lm 
 
 #======================================================
 # Music bundle
@@ -209,7 +206,7 @@ SRC_BUNDLE_FILES += $(SRC_COMMON_FILES)
 CFLAGS += $(BUNDLE_C_INCLUDES)
 
 BUNDLE_STATIC_TARGET:= libbundle.a
-BUNDLE_SHARED_TARGET:= libbundle.so
+#BUNDLE_SHARED_TARGET:= libbundle.so
 OBJS_BUNDLE_RELEASE += $(addsuffix .o, $(basename $(SRC_BUNDLE_FILES)))
 
 #=========================================================
@@ -229,35 +226,7 @@ SRC_REVERB_FILES:= \
     Reverb/src/LVREV_Process.c \
     Reverb/src/LVREV_SetControlParameters.c \
     Reverb/src/LVREV_Tables.c \
-    Common/src/Abs_32.c \
-    Common/src/InstAlloc.c \
-    Common/src/LoadConst_16.c \
-    Common/src/LoadConst_32.c \
-    Common/src/From2iToMono_32.c \
-    Common/src/Mult3s_32x16.c \
-    Common/src/FO_1I_D32F32C31_TRC_WRA_01.c \
-    Common/src/FO_1I_D32F32Cll_TRC_WRA_01_Init.c \
-    Common/src/DelayAllPass_Sat_32x16To32.c \
-    Common/src/Copy_16.c \
-    Common/src/Mac3s_Sat_32x16.c \
-    Common/src/DelayWrite_32.c \
-    Common/src/Shift_Sat_v32xv32.c \
-    Common/src/Add2_Sat_32x32.c \
-    Common/src/JoinTo2i_32x32.c \
-    Common/src/MonoTo2I_32.c \
-    Common/src/LVM_FO_HPF.c \
-    Common/src/LVM_FO_LPF.c \
-    Common/src/LVM_Polynomial.c \
-    Common/src/LVM_Power10.c \
-    Common/src/LVM_GetOmega.c \
-    Common/src/MixSoft_2St_D32C31_SAT.c \
-    Common/src/MixSoft_1St_D32C31_WRA.c \
-    Common/src/MixInSoft_D32C31_SAT.c \
-    Common/src/LVM_Mixer_TimeConstant.c \
-    Common/src/Core_MixHard_2St_D32C31_SAT.c \
-    Common/src/Core_MixSoft_1St_D32C31_WRA.c \
-    Common/src/Core_MixInSoft_D32C31_SAT.c
-
+    
 DIRS += .\
 		Reverb/src/ 
 
@@ -271,7 +240,7 @@ SRC_REVERB_FILES += $(SRC_COMMON_FILES)
 CFLAGS += $(REVERB_C_INCLUDES)
 
 REVERB_STATIC_TARGET:= libreverb.a
-REVERB_SHARED_TARGET:= libreverb.so
+#REVERB_SHARED_TARGET:= libreverb.so
 OBJS_REVERB_RELEASE += $(addsuffix .o, $(basename $(SRC_REVERB_FILES)))
 
 DTAP_TARGET += $(BUNDLE_SHARED_TARGET)
@@ -302,7 +271,7 @@ $(REVERB_SHARED_TARGET):$(OBJS_REVERB_RELEASE)
 	@echo =====================================================
 
 $(REVERB_STATIC_TARGET):$(OBJS_REVERB_RELEASE)
-	@$(CC) -shared -fPIC -o $@ $^ $(LDFLAGS)
+	@$(AR) rcs $@ $^
 	@echo build $@ done
 	@echo =====================================================
 

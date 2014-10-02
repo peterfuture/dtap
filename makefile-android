@@ -1,0 +1,144 @@
+.PHONY: all clean
+
+#======================================================
+#                   VERSION                      
+#======================================================
+
+DTAP_VERSION = v1.0
+
+#======================================================
+#                   SETTING                      
+#======================================================
+
+DTAP_BUNDLE = yes
+DTAP_REVERB = yes
+
+#======================================================
+#                   MACRO                      
+#======================================================
+
+DT_CFLAGS += -DENABLE_BUNDLE=1
+DT_CFLAGS += -DENABLE_REVERB=1
+
+#======================================================
+#                   Rules
+#======================================================
+
+#release
+%.o: %.S
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+%.o: %.c
+	@echo CC $@ 
+	@$(CC) $(CFLAGS) -shared -fPIC -c -o $@ $< 
+
+%.o: %.cpp
+	$(CC) $(CXXFLAGS) -c -o $@ $<
+
+%.o: %.m
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+%-rc.o: %.rc
+	$(WINDRES) -I. $< -o $@
+
+#debug
+%.debug.o: %.S
+	$(CC) $(CFLAGS) -g -c -o $@ $<
+
+%.debug.o: %.c
+	@echo CC $@ 
+	@$(CC) $(CFLAGS) -g -c -o $@ $< 
+
+%.debug.o: %.cpp
+	$(CXX) $(CXXFLAGS) -g -c -o $@ $<
+
+%.debug.o: %.m
+	$(CC) $(CFLAGS) -g -c -o $@ $<
+#==============================================
+
+
+#======================================================
+#                   ENV 
+#======================================================
+export MAKEROOT := $(shell pwd)
+LOCAL_PATH      := $(shell pwd)
+
+CC       = arm-linux-androideabi-gcc
+LD       = arm-linux-androideabi-ld
+AR       = arm-linux-androideabi-ar
+STRIP    = arm-linux-androideabi-strip
+
+CFLAGS  += -Wall 
+DT_DEBUG = -g
+
+#CFLAGS  += -I/usr/include -I/usr/local/include
+#LDFLAGS += -L/usr/local/lib -L/usr/lib -L./
+
+#LDFLAGS += -lpthread -lm 
+
+LDFLAGS += lvm/libbundle.a lvm/libreverb.a
+
+#======================================================
+# dtap
+#======================================================
+
+LIB_SRCS         += dtap.c
+LIB_SRCS         += plugin/EffectBundle.c
+LIB_C_INCLUDES   += -Iinclude -I./
+LIB_C_INCLUDES   += -Iinclude -I./ -Iplugin
+LIB_C_INCLUDES   += -Ilvm/Bundle/lib
+LIB_C_INCLUDES   += -Ilvm/Reverb/lib
+LIB_C_INCLUDES   += -Ilvm/Common/lib
+CFLAGS           += $(LIB_C_INCLUDES)
+LIB_SHARED_TARGET:= libdtap.so
+LIB_STATIC_TARGET+= libdtap.a
+OBJS_LIB_RELEASE += $(addsuffix .o, $(basename $(LIB_SRCS)))
+DIRS             += ./ \
+					plugin
+
+#=========================================================
+
+#======================================================
+# test
+#======================================================
+
+EXE_SRCS         += test/test.c test/test_bundle.c
+EXE_C_INCLUDES   += -Iinclude
+CFLAGS           += $(EXE_C_INCLUDES)
+#EXE_TARGET       := dtap.exe
+OBJS_EXE_RELEASE += $(addsuffix .o, $(basename $(EXE_SRCS)))
+DIRS             += test
+
+#=========================================================
+
+DTAP_TARGET += $(LIB_SHARED_TARGET) $(LIB_STATIC_TARGET)
+DTAP_TARGET += $(EXE_TARGET)
+
+all: $(DTAP_TARGET)
+	@echo =====================================================
+	@echo build $(DTAP_TARGET) done
+	@echo =====================================================
+
+$(LIB_SHARED_TARGET): $(OBJS_LIB_RELEASE)
+	@$(CC) -shared -fPIC -o $@ $^ $(LDFLAGS)
+	@echo =====================================================
+	@echo build $@ done
+	@echo =====================================================
+
+$(LIB_STATIC_TARGET): $(OBJS_LIB_RELEASE)
+	@$(AR) rcs $@ $^
+	@echo =====================================================
+	@echo build $@ done
+	@echo =====================================================
+
+$(EXE_TARGET): $(OBJS_EXE_RELEASE)
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) libdtap.a lvm/libbundle.a lvm/libreverb.a
+	@echo =====================================================
+	@echo build $@ done
+	@echo =====================================================
+
+ADDSUFFIXES  = $(foreach suf,$(1),$(addsuffix $(suf),$(2)))
+ALL_DIRS     = $(call ADDSUFFIXES,$(1),$(DIRS))
+
+clean:
+	-rm -f $(call ALL_DIRS,/*.o /*.so /*.a /*.d /*.a /*.ho /*~ /*.exe)

@@ -71,11 +71,10 @@ STRIP    = strip
 CFLAGS  += -Wall 
 DT_DEBUG = -g
 
-CFLAGS  += -I/usr/include -I/usr/local/include
-LDFLAGS += -L/usr/local/lib -L/usr/lib -L./
+#CFLAGS  += -I/usr/include -I/usr/local/include
+#LDFLAGS += -L/usr/local/lib -L/usr/lib -L./
 
-LDFLAGS += -lpthread -lm 
-
+#LDFLAGS += -lpthread -lm 
 LDFLAGS += lvm/libbundle.a lvm/libreverb.a
 
 #======================================================
@@ -132,7 +131,7 @@ $(LIB_STATIC_TARGET): $(OBJS_LIB_RELEASE)
 	@echo =====================================================
 
 $(EXE_TARGET): $(OBJS_EXE_RELEASE)
-	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) libdtap.a lvm/libbundle.a lvm/libreverb.a
+	@$(CC) $(CFLAGS) -o $@ $^ libdtap.a lvm/libbundle.a lvm/libreverb.a
 	@echo =====================================================
 	@echo build $@ done
 	@echo =====================================================
