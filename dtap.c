@@ -63,20 +63,12 @@ int dtap_process(dtap_context_t *ctx, dtap_frame_t *frame)
     return 0;
 }
 
-int dtap_reset(dtap_context_t *ctx, dtap_para_t *para)
-{
-    dtap_lock(&mutex); 
-    ap_wrapper_t *wrapper = ctx->wrapper;
-    wrapper->release(ctx);
-    dtap_unlock(&mutex); 
-    return 0;
-}
-
 int dtap_update(dtap_context_t *ctx)
 {
     dtap_lock(&mutex); 
     ap_wrapper_t *wrapper = ctx->wrapper;
     wrapper->release(ctx);
+    ctx->inited = 0;
     dtap_unlock(&mutex); 
     return 0;
 }

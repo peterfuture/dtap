@@ -79,7 +79,6 @@ typedef struct dtap_context{
 
 int dtap_init(dtap_context_t *ctx);
 int dtap_process(dtap_context_t *ctx, dtap_frame_t *frame);
-int dtap_reset(dtap_context_t *ctx, dtap_para_t *para);
 int dtap_update(dtap_context_t *ctx);
 int dtap_release(dtap_context_t *ctx);
 

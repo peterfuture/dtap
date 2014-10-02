@@ -27,5 +27,11 @@ int bundle_test(char *in, char *out)
 
     int ret = dtap_process(&ctx, &frame);
     dtap_print("ret :%d \n", ret);
+    
+    
+    ppara->item = EQ_EFFECT_FOLK;
+    dtap_update(&ctx);
+    ret = dtap_process(&ctx, &frame);
+    dtap_print("ret :%d \n", ret);
     return 0;
 }
