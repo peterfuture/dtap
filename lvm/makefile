@@ -186,7 +186,7 @@ DIRS += .\
 		Bundle/src \
 		Eq/src \
 		SpectrumAnalyzer/src \
-		Base/src
+		Bass/src
 
 BUNDLE_C_INCLUDES += \
     -I$(LOCAL_PATH)/Eq/lib \
