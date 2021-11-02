@@ -27,8 +27,3 @@ Test
 
 ./dtap.exe
 
-
-Help
-====
-
-Email & QQ: peter_future@outlook.com 
